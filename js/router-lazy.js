@@ -401,9 +401,19 @@ export class Router {
     this.mainContent.innerHTML = this.loadingTemplate;
 
     try {
-      // Dynamically import the tool module if not loaded
+      // Dynamically load the tool through Vite's import.meta.glob map.
+      // Do NOT use a runtime import(route.module) here: in production Vite
+      // renames/chunks these files, so the raw "./tools/*.js" path can fail.
       if (!route.loaded) {
-        const module = await import(/* @vite-ignore */ route.module);
+        const loader = toolModules[route.module];
+
+        if (!loader) {
+          throw new Error(`Tool module not found: ${route.module}`);
+        }
+
+        const module = await loader();
+
+        // Validate that the expected class exists in the module
 
         // Validate that the expected class exists in the module
         if (!module[route.className]) {
