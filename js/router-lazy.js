@@ -387,6 +387,11 @@ export class Router {
   }
 
   async loadTool(route) {
+    // Save current tool state before leaving it
+    if (this.currentTool && this.currentTool !== route.instance) {
+      this.saveToolState();
+    }
+
     // Destroy current tool if it has a destroy method
     if (this.currentTool && typeof this.currentTool.destroy === "function") {
       this.currentTool.destroy();
@@ -398,13 +403,7 @@ export class Router {
     try {
       // Dynamically import the tool module if not loaded
       if (!route.loaded) {
-        const loader = toolModules[route.module];
-
-        if (!loader) {
-          throw new Error(`Tool module not found: ${route.module}`);
-        }
-
-        const module = await loader();
+        const module = await import(/* @vite-ignore */ route.module);
 
         // Validate that the expected class exists in the module
         if (!module[route.className]) {
@@ -434,6 +433,9 @@ export class Router {
       route.instance.init("tool-root");
       this.currentTool = route.instance;
 
+      // Restore previous state if this tool had one
+      this.restoreToolState(route);
+
       // Update document title
       document.title = `${route.name} - DevToolbox`;
 
@@ -449,6 +451,72 @@ export class Router {
       console.error(`Failed to load tool: ${route.name}`, error);
       this.showError(route.name, error.message);
     }
+  }
+
+  saveToolState() {
+    if (!this.currentTool) return;
+
+    const root = document.getElementById("tool-root");
+    if (!root) return;
+
+    const route = Array.from(this.routes.values()).find(
+      (item) => item.instance === this.currentTool,
+    );
+
+    if (!route) return;
+
+    const elements = root.querySelectorAll("input, textarea, select");
+
+    const state = [];
+
+    elements.forEach((element, index) => {
+      state.push({
+        index,
+        tag: element.tagName.toLowerCase(),
+        type: element.type || "",
+        value: element.value,
+        checked:
+          typeof element.checked === "boolean" ? element.checked : undefined,
+        selectedIndex:
+          element.tagName === "SELECT" ? element.selectedIndex : undefined,
+      });
+    });
+
+    route.savedState = state;
+  }
+
+  restoreToolState(route) {
+    if (!route.savedState || !route.savedState.length) {
+      return;
+    }
+
+    const root = document.getElementById("tool-root");
+    if (!root) return;
+
+    const elements = root.querySelectorAll("input, textarea, select");
+
+    route.savedState.forEach((saved) => {
+      const element = elements[saved.index];
+
+      if (!element) return;
+
+      if (element.tagName === "SELECT") {
+        if (typeof saved.selectedIndex === "number") {
+          element.selectedIndex = saved.selectedIndex;
+        }
+      } else if (element.type === "checkbox" || element.type === "radio") {
+        if (typeof saved.checked === "boolean") {
+          element.checked = saved.checked;
+        }
+      } else {
+        element.value = saved.value ?? "";
+      }
+
+      // Trigger input/change so the tool can update its own UI
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+
+      element.dispatchEvent(new Event("change", { bubbles: true }));
+    });
   }
 
   async preloadTool(path) {
