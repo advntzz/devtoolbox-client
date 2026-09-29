@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Fast, minimal, privacy-first developer utilities in one place. No ads, no tracking, works offline.">
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="color-scheme" content="dark light">
+  
+  <!-- Cache Control -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  
+  <title>DevToolbox - Fast Developer Utilities</title>
+  
+  <!-- PWA Support -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  
+  <!-- Compiled Tailwind CSS with cache busting -->
+  <link rel="stylesheet" href="/css/styles.css?v=20260929-3">
+  
+  <!-- Minimal inline styles for critical tool layouts -->
+  <style>
+    /* Dark mode support */
+    [data-theme="dark"] {
+      color-scheme: dark;
+    }
+    
+    /* Fix checkbox styling */
+    input[type="checkbox"] {
+      background-color: white !important;
+      border: 1px solid #d1d5db !important;
+    }
+    
+    [data-theme="dark"] input[type="checkbox"] {
+      background-color: #1f2937 !important;
+      border-color: #4b5563 !important;
+    }
+    
+    input[type="checkbox"]:checked {
+      background-color: #3b82f6 !important;
+      border-color: #3b82f6 !important;
+    }
+    
+    input[type="checkbox"]:focus {
+      outline: 2px solid #3b82f6 !important;
+      outline-offset: 2px !important;
+    }
+    
+    /* Fix range slider styling */
+    input[type="range"] {
+      background: transparent !important;
+    }
+    
+    input[type="range"]::-webkit-slider-track {
+      background: #e5e7eb !important;
+      height: 0.5rem !important;
+      border-radius: 0.5rem !important;
+    }
+    
+    [data-theme="dark"] input[type="range"]::-webkit-slider-track {
+      background: #374151 !important;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none !important;
+      appearance: none !important;
+      width: 1.25rem !important;
+      height: 1.25rem !important;
+      border-radius: 50% !important;
+      background: #3b82f6 !important;
+      cursor: pointer !important;
+      border: 2px solid white !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    [data-theme="dark"] input[type="range"]::-webkit-slider-thumb {
+      border-color: #1f2937 !important;
+    }
+    
+    input[type="range"]::-moz-range-track {
+      background: #e5e7eb !important;
+      height: 0.5rem !important;
+      border-radius: 0.5rem !important;
+    }
+    
+    [data-theme="dark"] input[type="range"]::-moz-range-track {
+      background: #374151 !important;
+    }
+    
+    input[type="range"]::-moz-range-thumb {
+      width: 1.25rem !important;
+      height: 1.25rem !important;
+      border-radius: 50% !important;
+      background: #3b82f6 !important;
+      cursor: pointer !important;
+      border: 2px solid white !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    [data-theme="dark"] input[type="range"]::-moz-range-thumb {
+      border-color: #1f2937 !important;
+    }
+    
+    /* Tool-specific layouts that must be enforced */
+    .diff-inputs {
+      display: flex !important;
+      gap: 1rem !important;
+    }
+    
+    .diff-inputs > div {
+      flex: 1 !important;
+    }
+    
+    .jwt-parts {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr 1fr !important;
+      gap: 1rem !important;
+    }
+    
+    /* Markdown preview styles */
+    #markdown-output h1 { font-size: 2em; font-weight: bold; margin: 0.67em 0; }
+    #markdown-output h2 { font-size: 1.5em; font-weight: bold; margin: 0.83em 0; }
+    #markdown-output h3 { font-size: 1.17em; font-weight: bold; margin: 1em 0; }
+    #markdown-output p { margin: 1em 0; }
+    #markdown-output ul, #markdown-output ol { margin: 1em 0; padding-left: 2em; }
+    #markdown-output li { margin: 0.5em 0; }
+    #markdown-output blockquote { 
+      border-left: 4px solid #e5e7eb; 
+      padding-left: 1em; 
+      margin: 1em 0; 
+      color: #6b7280; 
+    }
+    [data-theme="dark"] #markdown-output blockquote { 
+      border-color: #4b5563; 
+      color: #9ca3af; 
+    }
+    #markdown-output code { 
+      background: #f3f4f6; 
+      padding: 0.2em 0.4em; 
+      border-radius: 0.25rem; 
+      font-family: monospace; 
+      font-size: 0.875em;
+    }
+    [data-theme="dark"] #markdown-output code { 
+      background: #1f2937; 
+    }
+    #markdown-output pre { 
+      background: #f3f4f6; 
+      padding: 1em; 
+      border-radius: 0.5rem; 
+      overflow-x: auto; 
+      margin: 1em 0;
+    }
+    [data-theme="dark"] #markdown-output pre { 
+      background: #1f2937; 
+    }
+    #markdown-output pre code { 
+      background: transparent; 
+      padding: 0; 
+    }
+    #markdown-output table { 
+      border-collapse: collapse; 
+      width: 100%; 
+      margin: 1em 0; 
+    }
+    #markdown-output th, #markdown-output td { 
+      border: 1px solid #e5e7eb; 
+      padding: 0.5em; 
+      text-align: left; 
+    }
+    [data-theme="dark"] #markdown-output th, 
+    [data-theme="dark"] #markdown-output td { 
+      border-color: #4b5563; 
+    }
+    #markdown-output th { 
+      background: #f9fafb; 
+      font-weight: bold; 
+    }
+    [data-theme="dark"] #markdown-output th { 
+      background: #1f2937; 
+    }
+    #markdown-output hr { 
+      border: none; 
+      border-top: 1px solid #e5e7eb; 
+      margin: 2em 0; 
+    }
+    [data-theme="dark"] #markdown-output hr { 
+      border-color: #4b5563; 
+    }
+    #markdown-output a { 
+      color: #3b82f6; 
+      text-decoration: underline; 
+    }
+    #markdown-output a:hover { 
+      color: #2563eb; 
+    }
+    #markdown-output img { 
+      max-width: 100%; 
+      height: auto; 
+    }
+    
+    /* Code highlighting */
+    #markdown-output .keyword { color: #7c3aed; }
+    #markdown-output .string { color: #059669; }
+    #markdown-output .number { color: #dc2626; }
+    #markdown-output .comment { color: #6b7280; font-style: italic; }
+    #markdown-output .selector { color: #7c3aed; }
+    #markdown-output .property { color: #2563eb; }
+    #markdown-output .value { color: #059669; }
+    #markdown-output .tag { color: #dc2626; }
+    #markdown-output .attribute { color: #2563eb; }
+    
+    [data-theme="dark"] #markdown-output .keyword { color: #a78bfa; }
+    [data-theme="dark"] #markdown-output .string { color: #34d399; }
+    [data-theme="dark"] #markdown-output .number { color: #f87171; }
+    [data-theme="dark"] #markdown-output .comment { color: #9ca3af; }
+    [data-theme="dark"] #markdown-output .selector { color: #a78bfa; }
+    [data-theme="dark"] #markdown-output .property { color: #60a5fa; }
+    [data-theme="dark"] #markdown-output .value { color: #34d399; }
+    [data-theme="dark"] #markdown-output .tag { color: #f87171; }
+    [data-theme="dark"] #markdown-output .attribute { color: #60a5fa; }
+    
+    /* Mobile responsiveness for tools */
+    @media (max-width: 768px) {
+      #sidebar.open {
+        transform: translateX(0) !important;
+      }
+      
+      .diff-inputs {
+        flex-direction: column !important;
+      }
+      
+      .jwt-parts {
+        grid-template-columns: 1fr !important;
+      }
+    }
+  </style>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
+  <script src="js/theme.js?v=20250824-1"></script>
+  <script type="module">
+    // Register Service Worker only in production builds.
+    // During `vite` dev server (import.meta.env.MODE === 'development'),
+    // do not register the SW so changes are visible on normal refresh.
+    if ('serviceWorker' in navigator && import.meta.env && import.meta.env.MODE === 'production') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(registration => {
+          console.log('ServiceWorker registered:', registration);
+
+          // Check for updates periodically
+          setInterval(() => {
+            registration.update();
+          }, 60000); // Check every minute
+        }).catch(err => {
+          console.log('ServiceWorker registration failed:', err);
+        });
+      });
+    } else {
+      // Helpful debug log in dev and remove any previously installed service workers/caches
+      console.log('ServiceWorker registration skipped (not in production mode)');
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          registrations.forEach((reg) => {
+            console.log('Unregistering service worker (dev):', reg);
+            reg.unregister().catch(() => {});
+          });
+        }).catch(() => {});
+      }
+
+      // Clear all caches in development to avoid stale assets
+      if ('caches' in window) {
+        caches.keys().then((cacheNames) => {
+          return Promise.all(cacheNames.map(name => caches.delete(name)));
+        }).then(() => {
+          console.log('Development caches cleared');
+        }).catch(() => {});
+      }
+    }
+  </script>
+</head>
+<body class="dt-app">
+  <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded">Skip to main content</a>
+  
+  <!-- Header -->
+  <header role="banner" class="dt-header">
+    <button class="dt-menu-toggle" data-menu-toggle aria-label="Toggle menu" aria-expanded="false" aria-controls="sidebar">
+      <svg viewBox="0 0 24 24"
+     aria-hidden="true"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="2"
+     stroke-linecap="round"
+     stroke-linejoin="round">
+  <line x1="3" y1="12" x2="21" y2="12"></line>
+  <line x1="3" y1="6" x2="21" y2="6"></line>
+  <line x1="3" y1="18" x2="21" y2="18"></line>
+</svg>
+    </button>
+
+    <a class="dt-brand" href="#" aria-label="DevToolbox home">
+      <span class="dt-brand-mark">⚡</span>
+      <span>DevToolbox</span>
+    </a>
+
+    <div class="dt-search">
+      <div class="dt-search-box">
+        <svg class="dt-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        <input
+          type="search"
+          placeholder="Search tools (press /)"
+          aria-label="Search tools"
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <button class="dt-search-clear" aria-label="Clear search" title="Clear search" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div id="search-results" class="dt-search-results" hidden></div>
+    </div>
+
+    <div class="dt-header-actions">
+      <button class="dt-icon-button" data-theme-toggle aria-label="Toggle theme" title="Toggle theme">
+        <svg class="dt-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+        </svg>
+        <svg class="dt-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+        </svg>
+      </button>
+
+      <button class="dt-icon-button dt-clear-button" onclick="clearEverything()" aria-label="Clear all data" title="Clear all data">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+  
+  <!-- Main layout container -->
+  <div class="dt-layout">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="dt-sidebar" aria-label="Tools sidebar">
+      <nav role="navigation" aria-label="Main navigation" class="dt-sidebar-nav">
+        <div class="mb-6 p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500">
+          <h2 class="px-3 mb-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Text & Data</h2>
+          <ul class="space-y-1">
+            <li><a href="#json-formatter" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">JSON Formatter</a></li>
+            <li><a href="#json-validator" class="nav-link block px-4 py-2 rounded-lg transition-colors">JSON Validator</a></li>
+            <li><a href="#jwt-decoder" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">JWT Decoder</a></li>
+            <li><a href="#base64" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Base64 Encode/Decode</a></li>
+            <li><a href="#url-encode" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">URL Encode/Decode</a></li>
+            <li><a href="#diff" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Diff Tool</a></li>
+            <li><a href="#markdown" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Markdown Preview</a></li>
+          </ul>
+        </div>
+        
+        <div class="mb-6 p-2 rounded-lg bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500">
+          <h2 class="px-3 mb-2 text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">Generators</h2>
+          <ul class="space-y-1">
+            <li><a href="#uuid" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">UUID Generator</a></li>
+            <li><a href="#hash" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Hash Generator</a></li>
+            <li><a href="#fake-data" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Fake Data Generator</a></li>
+            <li><a href="#password-generator" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Password Generator</a></li>
+            <li><a href="#qr-generator" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">QR Code Generator</a></li>
+            <li><a href="#ascii-art" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">ASCII Art Generator</a></li>
+          </ul>
+        </div>
+        
+        <div class="mb-6 p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-500">
+          <h2 class="px-3 mb-2 text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Converters</h2>
+          <ul class="space-y-1">
+            <li><a href="#csv-json" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">CSV ↔ JSON</a></li>
+            <li><a href="#yaml-json" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">YAML ↔ JSON</a></li>
+            <li><a href="#json-to-xml" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">JSON ↔ XML Converter</a></li>
+            <li><a href="#csv-xml" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">CSV ↔ XML Converter</a></li>
+            <li><a href="#binary-converter" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Binary Converter</a></li>
+            <li><a href="#image-converter" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Image Converter</a></li>
+          </ul>
+        </div>
+        
+        <div class="mb-6 p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-indigo-500">
+          <h2 class="px-3 mb-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Date & Time</h2>
+          <ul class="space-y-1">
+            <li><a href="#unix-time" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Unix Time Converter</a></li>
+            <li><a href="#date-duration" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Date Calculator</a></li>
+          </ul>
+        </div>
+        
+        <div class="mb-6 p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500">
+          <h2 class="px-3 mb-2 text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Developer Tools</h2>
+          <ul class="space-y-1">
+            <li><a href="#regex-tester" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Regex Tester</a></li>
+            <li><a href="#cron" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Cron Parser</a></li>
+            <li><a href="#curl" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">cURL Generator</a></li>
+            <li><a href="#api-mock" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">API Mock Generator</a></li>
+            <li><a href="#graphql" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">GraphQL Tester</a></li>
+            <li><a href="#sql-formatter" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">SQL Formatter</a></li>
+            <li><a href="#xml-formatter" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">XML Formatter</a></li>
+            <li><a href="#html-formatter" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">HTML Formatter</a></li>
+            <li><a href="#css-formatter" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">CSS Formatter</a></li>
+            <li><a href="#html-escape" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">HTML Escape / Unescape</a></li>
+            <li><a href="#xml-escape" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">XML Escape / Unescape</a></li>
+            <li><a href="#js-minifier" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">JavaScript Minifier / Beautifier</a></li>
+            <li><a href="#webhook-tester" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Webhook Tester</a></li>
+          </ul>
+        </div>
+        
+        <div class="mb-6 p-2 rounded-lg bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500">
+          <h2 class="px-3 mb-2 text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wider">Networking & Cloud</h2>
+          <ul class="space-y-1">
+            <li><a href="#ip-lookup" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">IP Address Lookup</a></li>
+            <li><a href="#cidr-calculator" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">CIDR Calculator</a></li>
+            <li><a href="#dns-lookup" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">DNS Lookup</a></li>
+            <li><a href="#whois-lookup" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">RDAP Lookup</a></li>
+            <li><a href="#s3-presigned-url" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">S3 Pre-signed URL</a></li>
+            <li><a href="#iam-policy-visualizer" class="nav-link block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">IAM Policy Visualizer</a></li>
+          </ul>
+        </div>
+      </nav>
+    </aside>
+    
+    <!-- Main content -->
+    <main id="main" role="main" class="dt-main">
+      <div class="dt-home">
+        <div class="dt-eyebrow">40 DEVELOPER UTILITIES · LOCAL-FIRST</div>
+
+        <h1 class="dt-hero-title">
+          Developer tools.
+          <span>Fast. Focused. No nonsense.</span>
+        </h1>
+
+        <p class="dt-hero-copy">
+          Format, convert, inspect, generate, and test without sending your data
+          through unnecessary services.
+        </p>
+
+        <div class="dt-home-search">
+          <svg class="dt-home-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          <input id="home-tool-search" type="search" placeholder="Search any tool" aria-label="Search any tool" autocomplete="off">
+          <kbd>/</kbd>
+        </div>
+
+        <div class="dt-shortcuts">
+          <span><kbd>/</kbd> Search</span>
+          <span><kbd>Esc</kbd> Clear</span>
+          <span><kbd>T</kbd> Theme</span>
+        </div>
+
+        <section class="dt-popular" aria-labelledby="popular-tools-title">
+          <div class="dt-section-heading">
+            <div>
+              <span class="dt-section-kicker">START HERE</span>
+              <h2 id="popular-tools-title">Popular tools</h2>
+            </div>
+            <span class="dt-tool-count">40 tools</span>
+          </div>
+
+          <div class="dt-tool-grid">
+            <a href="#json-formatter" class="dt-tool-card">
+              <span class="dt-tool-card-icon">{ }</span>
+              <span><strong>JSON Formatter</strong><small>Format and inspect JSON</small></span>
+              <span class="dt-arrow">→</span>
+            </a>
+            <a href="#jwt-decoder" class="dt-tool-card">
+              <span class="dt-tool-card-icon">JWT</span>
+              <span><strong>JWT Decoder</strong><small>Decode token payloads</small></span>
+              <span class="dt-arrow">→</span>
+            </a>
+            <a href="#base64" class="dt-tool-card">
+              <span class="dt-tool-card-icon">64</span>
+              <span><strong>Base64 Encode/Decode</strong><small>Encode or decode text</small></span>
+              <span class="dt-arrow">→</span>
+            </a>
+            <a href="#regex-tester" class="dt-tool-card">
+              <span class="dt-tool-card-icon">.*</span>
+              <span><strong>Regex Tester</strong><small>Test regular expressions</small></span>
+              <span class="dt-arrow">→</span>
+            </a>
+            <a href="#sql-formatter" class="dt-tool-card">
+              <span class="dt-tool-card-icon">SQL</span>
+              <span><strong>SQL Formatter</strong><small>Format SQL queries</small></span>
+              <span class="dt-arrow">→</span>
+            </a>
+            <a href="#css-formatter" class="dt-tool-card">
+              <span class="dt-tool-card-icon">CSS</span>
+              <span><strong>CSS Formatter</strong><small>Beautify CSS quickly</small></span>
+              <span class="dt-arrow">→</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="dt-all-tools" aria-labelledby="all-tools-title">
+          <div class="dt-section-heading">
+            <div>
+              <span class="dt-section-kicker">BROWSE</span>
+              <h2 id="all-tools-title">All tools</h2>
+            </div>
+          </div>
+          <p>Use the sidebar or search to jump directly to any utility.</p>
+        </section>
+      </div>
+    </main>
+  </div>
+  
+  <!-- Mobile sidebar overlay -->
+  <div class="dt-sidebar-overlay" data-sidebar-overlay></div>
+  
+  <script src="js/app.js?v=20260929-shellfix1" type="module"></script>
+</body>
+</html>

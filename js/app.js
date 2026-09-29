@@ -1,0 +1,1282 @@
+import { enableSwipeGestures } from "./swipe.js";
+import { searchTools, highlightMatch } from "./fuzzy-search.js";
+import { Router } from "./router-lazy.js";
+import { KeyboardShortcuts } from "./keyboard-shortcuts.js";
+import { ShareableLinks } from "./shareable-links.js";
+import { HistoryPersistence } from "./history-persistence.js";
+import { SettingsManager } from "./settings-manager.js";
+import { SearchAliases } from "./search-aliases.js";
+import "./theme-manager.js";
+
+// Theme Management
+document.addEventListener("DOMContentLoaded", () => {
+  const themeToggle = document.querySelector("[data-theme-toggle]");
+
+  themeToggle?.addEventListener("click", () => {
+    window.themeManager.toggleTheme();
+  });
+});
+
+// Theme toggle function for keyboard shortcut
+function toggleTheme() {
+  window.themeManager.toggleTheme();
+}
+
+// =========================================================
+// Mobile Menu Toggle
+// =========================================================
+
+const menuToggle = document.querySelector("[data-menu-toggle]");
+const sidebar = document.querySelector("#sidebar");
+const sidebarOverlay = document.querySelector("[data-sidebar-overlay]");
+
+function openMobileMenu() {
+  if (!sidebar) return;
+
+  sidebar.classList.add("open");
+  sidebarOverlay?.classList.add("open");
+  menuToggle?.setAttribute("aria-expanded", "true");
+}
+
+function closeMobileMenu() {
+  if (!sidebar) return;
+
+  sidebar.classList.remove("open");
+  sidebarOverlay?.classList.remove("open");
+  menuToggle?.setAttribute("aria-expanded", "false");
+}
+
+function toggleMobileMenu() {
+  if (!sidebar) return;
+
+  if (sidebar.classList.contains("open")) {
+    closeMobileMenu();
+  } else {
+    openMobileMenu();
+  }
+}
+
+menuToggle?.addEventListener("click", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  toggleMobileMenu();
+});
+
+menuToggle?.addEventListener("touchend", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  toggleMobileMenu();
+});
+
+sidebarOverlay?.addEventListener("click", closeMobileMenu);
+
+sidebar?.querySelectorAll(".nav-link").forEach((link) => {
+  link.addEventListener("click", closeMobileMenu);
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeMobileMenu();
+  }
+});
+
+const isMobile = window.matchMedia("(max-width: 1200px)").matches;
+
+if (isMobile && sidebar) {
+  enableSwipeGestures(sidebar, sidebarOverlay, menuToggle);
+  closeMobileMenu();
+}
+
+// =========================================================
+
+// Search Functionality
+const searchInput = document.querySelector('input[type="search"]');
+const searchClear =
+  document.querySelector(".search-clear") ||
+  document.querySelector('button[aria-label="Clear search"]');
+const searchResults = document.querySelector("#search-results");
+const categoryFilter = document.querySelector(".category-filter");
+
+// Enhanced tools data with keywords for better fuzzy matching
+const tools = [
+  // Formatters & Parsers
+  {
+    name: "JSON Formatter",
+    href: "#json-formatter",
+    category: "Formatters",
+    keywords: ["json", "format", "validate", "pretty", "beautify"],
+  },
+  {
+    name: "JSON Validator",
+    href: "#json-validator",
+    category: "Formatters",
+    keywords: [
+      "json",
+      "validator",
+      "validate",
+      "validation",
+      "syntax",
+      "check",
+      "parser",
+    ],
+  },
+  {
+    name: "SQL Formatter",
+    href: "#sql-formatter",
+    category: "Formatters",
+    keywords: [
+      "sql",
+      "format",
+      "query",
+      "database",
+      "beautify",
+      "minify",
+      "mysql",
+      "postgresql",
+    ],
+  },
+  {
+    name: "XML Formatter",
+    href: "#xml-formatter",
+    category: "Formatters",
+    keywords: [
+      "xml",
+      "format",
+      "validate",
+      "xpath",
+      "tree",
+      "beautify",
+      "minify",
+    ],
+  },
+  {
+    name: "Cron Parser",
+    href: "#cron",
+    category: "Formatters",
+    keywords: ["cron", "schedule", "job", "time", "expression"],
+  },
+  {
+    name: "Markdown Preview",
+    href: "#markdown",
+    category: "Formatters",
+    keywords: ["markdown", "md", "preview", "render", "github", "gfm"],
+  },
+  {
+    name: "HTML Formatter",
+    href: "#html-formatter",
+    category: "Formatters",
+    keywords: [
+      "html",
+      "format",
+      "formatter",
+      "beautify",
+      "pretty",
+      "minify",
+      "markup",
+    ],
+  },
+  {
+    name: "CSS Formatter",
+    href: "#css-formatter",
+    category: "Formatters",
+    keywords: ["css", "format", "minify", "beautify", "stylesheet", "styles"],
+  },
+  {
+    name: "HTML Escape / Unescape",
+    href: "#html-escape",
+    category: "Formatters",
+    keywords: ["html", "escape", "unescape", "encode", "decode", "entities"],
+  },
+  {
+    name: "XML Escape / Unescape",
+    href: "#xml-escape",
+    category: "Formatters",
+    keywords: ["xml", "escape", "unescape", "encode", "decode", "cdata"],
+  },
+  {
+    name: "JavaScript Minifier / Beautifier",
+    href: "#js-minifier",
+    category: "Formatters",
+    keywords: [
+      "javascript",
+      "js",
+      "minify",
+      "beautify",
+      "format",
+      "optimizer",
+      "terser",
+    ],
+  },
+  // Generators
+  {
+    name: "UUID Generator",
+    href: "#uuid",
+    category: "Generators",
+    keywords: ["uuid", "guid", "generate", "random", "unique"],
+  },
+  {
+    name: "Hash Generator",
+    href: "#hash",
+    category: "Generators",
+    keywords: ["hash", "md5", "sha", "sha256", "sha512", "crypto", "checksum"],
+  },
+  {
+    name: "Password Generator",
+    href: "#password-generator",
+    category: "Generators",
+    keywords: [
+      "password",
+      "secure",
+      "random",
+      "passphrase",
+      "generator",
+      "strength",
+    ],
+  },
+  {
+    name: "QR Code Generator",
+    href: "#qr-generator",
+    category: "Generators",
+    keywords: [
+      "qr",
+      "code",
+      "barcode",
+      "generator",
+      "wifi",
+      "vcard",
+      "contact",
+    ],
+  },
+  {
+    name: "ASCII Art Generator",
+    href: "#ascii-art",
+    category: "Generators",
+    keywords: ["ascii", "art", "text", "banner", "figlet", "generator"],
+  },
+  {
+    name: "Fake Data Generator",
+    href: "#fake-data",
+    category: "Generators",
+    keywords: [
+      "fake",
+      "data",
+      "mock",
+      "test",
+      "generator",
+      "random",
+      "person",
+      "address",
+    ],
+  },
+  {
+    name: "cURL Generator",
+    href: "#curl",
+    category: "Generators",
+    keywords: ["curl", "http", "api", "request", "rest", "command"],
+  },
+  {
+    name: "API Mock Generator",
+    href: "#api-mock",
+    category: "Generators",
+    keywords: [
+      "api",
+      "mock",
+      "server",
+      "express",
+      "json-server",
+      "postman",
+      "openapi",
+    ],
+  },
+  {
+    name: "S3 Pre-signed URL Generator",
+    href: "#s3-presigned-url",
+    category: "Generators",
+    keywords: [
+      "s3",
+      "aws",
+      "presigned",
+      "url",
+      "upload",
+      "download",
+      "bucket",
+      "amazon",
+    ],
+  },
+
+  // Converters
+  {
+    name: "Base64 Encode/Decode",
+    href: "#base64",
+    category: "Converters",
+    keywords: ["base64", "encode", "decode", "binary"],
+  },
+  {
+    name: "JSON ↔ XML Converter",
+    href: "#json-to-xml",
+    category: "Converters",
+    keywords: ["json", "xml", "convert", "to xml", "serialize"],
+  },
+  {
+    name: "CSV ↔ XML Converter",
+    href: "#csv-xml",
+    category: "Converters",
+    keywords: ["csv", "xml", "convert", "csv to xml", "xml to csv", "table"],
+  },
+  {
+    name: "URL Encode/Decode",
+    href: "#url-encode",
+    category: "Converters",
+    keywords: ["url", "uri", "encode", "decode", "percent"],
+  },
+  {
+    name: "Unix Time Converter",
+    href: "#unix-time",
+    category: "Date & Time",
+    keywords: ["unix", "timestamp", "epoch", "time", "date"],
+  },
+  {
+    name: "CSV ↔ JSON Converter",
+    href: "#csv-json",
+    category: "Converters",
+    keywords: ["csv", "json", "convert", "table", "data", "excel"],
+  },
+  {
+    name: "YAML ↔ JSON Converter",
+    href: "#yaml-json",
+    category: "Converters",
+    keywords: ["yaml", "json", "convert", "config", "configuration"],
+  },
+  {
+    name: "Binary Converter",
+    href: "#binary-converter",
+    category: "Converters",
+    keywords: [
+      "binary",
+      "decimal",
+      "hex",
+      "hexadecimal",
+      "octal",
+      "ascii",
+      "base64",
+      "converter",
+    ],
+  },
+  {
+    name: "Image Converter",
+    href: "#image-converter",
+    category: "Converters",
+    keywords: [
+      "image",
+      "convert",
+      "resize",
+      "compress",
+      "jpeg",
+      "png",
+      "webp",
+      "format",
+    ],
+  },
+  {
+    name: "Date Calculator",
+    href: "#date-duration",
+    category: "Date & Time",
+    keywords: [
+      "date",
+      "duration",
+      "time",
+      "calculator",
+      "days",
+      "business",
+      "calendar",
+      "period",
+      "between",
+      "add",
+      "subtract",
+      "plus",
+      "minus",
+      "future",
+      "past",
+      "arithmetic",
+    ],
+  },
+
+  // Text & Data Tools
+  {
+    name: "JWT Decoder",
+    href: "#jwt-decoder",
+    category: "Text & Data",
+    keywords: ["jwt", "token", "decode", "verify", "auth"],
+  },
+  {
+    name: "Diff Tool",
+    href: "#diff",
+    category: "Text & Data",
+    keywords: ["diff", "compare", "difference", "merge", "text"],
+  },
+  {
+    name: "Regex Tester",
+    href: "#regex-tester",
+    category: "Text & Data",
+    keywords: ["regex", "regexp", "pattern", "match", "test"],
+  },
+
+  // Developer Tools
+  {
+    name: "GraphQL Tester",
+    href: "#graphql",
+    category: "Developer Tools",
+    keywords: ["graphql", "query", "mutation", "introspection", "api", "test"],
+  },
+  {
+    name: "Webhook Tester",
+    href: "#webhook-tester",
+    category: "Developer Tools",
+    keywords: [
+      "webhook",
+      "test",
+      "debug",
+      "http",
+      "request",
+      "endpoint",
+      "api",
+    ],
+  },
+  {
+    name: "Temporary Email",
+    href: "#temp-email",
+    category: "Developer Tools",
+    keywords: [
+      "email",
+      "temp",
+      "otp",
+      "disposable",
+      "inbox",
+      "testing",
+      "throwaway",
+    ],
+  },
+
+  // Networking & Cloud Tools
+  {
+    name: "IP Address Lookup",
+    href: "#ip-lookup",
+    category: "Networking & Cloud",
+    keywords: [
+      "ip",
+      "address",
+      "lookup",
+      "geolocation",
+      "geo",
+      "isp",
+      "location",
+      "ipv4",
+      "ipv6",
+    ],
+  },
+  {
+    name: "DNS Lookup",
+    href: "#dns-lookup",
+    category: "Networking & Cloud",
+    keywords: [
+      "dns",
+      "lookup",
+      "domain",
+      "nameserver",
+      "mx",
+      "txt",
+      "a",
+      "aaaa",
+      "cname",
+    ],
+  },
+  {
+    name: "CIDR Calculator",
+    href: "#cidr-calculator",
+    category: "Networking & Cloud",
+    keywords: [
+      "cidr",
+      "subnet",
+      "calculator",
+      "network",
+      "ip",
+      "mask",
+      "range",
+      "ipv4",
+    ],
+  },
+  {
+    name: "RDAP Lookup",
+    href: "#whois-lookup",
+    category: "Networking & Cloud",
+    keywords: [
+      "rdap",
+      "whois",
+      "domain",
+      "ip",
+      "registration",
+      "registry",
+      "registrar",
+      "network",
+      "arin",
+      "ripe",
+      "apnic",
+      "afrinic",
+      "lacnic",
+    ],
+  },
+  {
+    name: "AWS IAM Policy Visualizer",
+    href: "#iam-policy-visualizer",
+    category: "Networking & Cloud",
+    keywords: [
+      "iam",
+      "aws",
+      "policy",
+      "visualizer",
+      "permissions",
+      "security",
+      "access",
+    ],
+  },
+];
+
+let searchDebounceTimer;
+let selectedResultIndex = -1;
+
+searchInput?.addEventListener("input", (e) => {
+  clearTimeout(searchDebounceTimer);
+  const query = e.target.value.trim();
+
+  if (query) {
+    searchClear.hidden = false;
+    searchDebounceTimer = setTimeout(() => performSearch(query), 200);
+  } else if (!categoryFilter?.value) {
+    searchClear.hidden = true;
+    searchResults.hidden = true;
+    selectedResultIndex = -1;
+  } else {
+    searchClear.hidden = true;
+    searchDebounceTimer = setTimeout(() => performSearch(""), 200);
+  }
+});
+
+// Category filter change
+categoryFilter?.addEventListener("change", () => {
+  const query = searchInput.value.trim();
+  if (query || categoryFilter?.value) {
+    performSearch(query);
+  } else {
+    searchResults.hidden = true;
+  }
+});
+
+searchClear?.addEventListener("click", () => {
+  searchInput.value = "";
+  searchClear.hidden = true;
+  searchResults.hidden = true;
+  searchInput.focus();
+  selectedResultIndex = -1;
+});
+
+function performSearch(query) {
+  let filtered = tools;
+
+  // Apply category filter
+  const category = categoryFilter?.value;
+  if (category) {
+    filtered = filtered.filter((tool) => tool.category === category);
+  }
+
+  // Apply search query
+  if (query) {
+    // Smart abbreviation matching first
+    const smartMatch = findSmartMatch(query, filtered);
+    if (smartMatch) {
+      navigateToTool(smartMatch.href);
+      clearSearchUI();
+      return;
+    }
+
+    filtered = searchTools(query, filtered);
+
+    // Auto-navigate if exactly one match
+    if (filtered.length === 1) {
+      navigateToTool(filtered[0].href);
+      clearSearchUI();
+      return;
+    }
+  }
+
+  if (filtered.length > 0) {
+    displaySearchResults(filtered, query);
+  } else {
+    searchResults.innerHTML =
+      '<div style="padding: 16px; color: var(--color-text-secondary);">No tools found</div>';
+    searchResults.hidden = false;
+  }
+  selectedResultIndex = -1;
+}
+
+function navigateToTool(href) {
+  // Navigate to the tool
+  window.location.hash = href;
+
+  // Focus the tool content after navigation with a small delay to ensure DOM is ready
+  setTimeout(() => {
+    focusToolContent();
+  }, 200);
+}
+
+function focusToolContent() {
+  // Focus the main tool content area after successful navigation
+  const toolRoot = document.getElementById("tool-root");
+  const mainContent = document.getElementById("main");
+
+  if (toolRoot) {
+    // Look for the first focusable element in the tool
+    const focusableElements = toolRoot.querySelectorAll(
+      'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+
+    if (focusableElements.length > 0) {
+      // Focus the first input/textarea if available, otherwise the first focusable element
+      const firstInput = toolRoot.querySelector(
+        "input:not([disabled]), textarea:not([disabled])",
+      );
+      const elementToFocus = firstInput || focusableElements[0];
+      elementToFocus.focus();
+    } else if (toolRoot.hasAttribute("tabindex") || toolRoot.tabIndex >= 0) {
+      // Focus the tool root itself if it's focusable
+      toolRoot.focus();
+    } else {
+      // Make tool root focusable and focus it
+      toolRoot.setAttribute("tabindex", "-1");
+      toolRoot.focus();
+      // Optionally remove tabindex after focus for clean DOM
+      setTimeout(() => {
+        if (toolRoot.getAttribute("tabindex") === "-1") {
+          toolRoot.removeAttribute("tabindex");
+        }
+      }, 100);
+    }
+  } else if (mainContent) {
+    // Fallback: focus the main content area
+    mainContent.setAttribute("tabindex", "-1");
+    mainContent.focus();
+    setTimeout(() => {
+      if (mainContent.getAttribute("tabindex") === "-1") {
+        mainContent.removeAttribute("tabindex");
+      }
+    }, 100);
+  }
+}
+
+function clearSearchUI() {
+  searchResults.hidden = true;
+  searchInput.value = "";
+  searchClear.hidden = true;
+}
+
+function findSmartMatch(query, toolsList) {
+  const q = query.toLowerCase().trim();
+
+  // Abbreviation patterns for quick access
+  const abbreviations = {
+    // JSON Tools
+    jf: "JSON Formatter",
+    json: "JSON Formatter",
+    jd: "JWT Decoder",
+    jwt: "JWT Decoder",
+
+    // Encoders/Decoders
+    b64: "Base64 Encode/Decode",
+    base64: "Base64 Encode/Decode",
+    url: "URL Encode/Decode",
+    uri: "URL Encode/Decode",
+
+    // Generators
+    uuid: "UUID Generator",
+    guid: "UUID Generator",
+    pg: "Password Generator",
+    pass: "Password Generator",
+    pw: "Password Generator",
+    qr: "QR Code Generator",
+    hash: "Hash Generator",
+    ascii: "ASCII Art Generator",
+    fake: "Fake Data Generator",
+
+    // Converters
+    unix: "Unix Time Converter",
+    time: "Unix Time Converter",
+    csv: "CSV ↔ JSON Converter",
+    yaml: "YAML ↔ JSON Converter",
+    yml: "YAML ↔ JSON Converter",
+    binary: "Binary Converter",
+    bin: "Binary Converter",
+    img: "Image Converter",
+    image: "Image Converter",
+
+    // Developer Tools
+    regex: "Regex Tester",
+    regexp: "Regex Tester",
+    re: "Regex Tester",
+    cron: "Cron Parser",
+    diff: "Diff Tool",
+    curl: "cURL Generator",
+    graphql: "GraphQL Tester",
+    gql: "GraphQL Tester",
+    sql: "SQL Formatter",
+    xml: "XML Formatter",
+    webhook: "Webhook Tester",
+    wh: "Webhook Tester",
+    api: "API Mock Generator",
+    mock: "API Mock Generator",
+    email: "Temporary Email",
+    temp: "Temporary Email",
+    otp: "Temporary Email",
+    inbox: "Temporary Email",
+    rdap: "RDAP Lookup",
+    whois: "RDAP Lookup",
+
+    // Text & Data
+    md: "Markdown Preview",
+    markdown: "Markdown Preview",
+
+    // Networking & Cloud
+    ip: "IP Address Lookup",
+    dns: "DNS Lookup",
+    cidr: "CIDR Calculator",
+    subnet: "CIDR Calculator",
+    whois: "WHOIS Lookup",
+    s3: "S3 Pre-signed URL Generator",
+    aws: "S3 Pre-signed URL Generator",
+    iam: "AWS IAM Policy Visualizer",
+    policy: "AWS IAM Policy Visualizer",
+  };
+
+  // Check for exact abbreviation match
+  if (abbreviations[q]) {
+    return toolsList.find((tool) => tool.name === abbreviations[q]);
+  }
+
+  // Check for unique prefix match
+  const prefixMatches = toolsList.filter(
+    (tool) =>
+      tool.name.toLowerCase().startsWith(q) ||
+      tool.keywords.some((keyword) => keyword.toLowerCase().startsWith(q)),
+  );
+
+  if (prefixMatches.length === 1) {
+    return prefixMatches[0];
+  }
+
+  // Fuzzy match - check if query letters appear in sequence within tool names
+  const fuzzyMatches = toolsList.filter((tool) => {
+    return (
+      fuzzyMatch(q, tool.name.toLowerCase()) ||
+      tool.keywords.some((keyword) => fuzzyMatch(q, keyword.toLowerCase()))
+    );
+  });
+
+  // Return if exactly one fuzzy match with high confidence
+  if (fuzzyMatches.length === 1) {
+    return fuzzyMatches[0];
+  }
+
+  return null;
+}
+
+// Fuzzy matching function - checks if query letters appear in sequence
+function fuzzyMatch(query, text) {
+  if (query.length === 0) return false;
+  if (query.length > text.length) return false;
+
+  let queryIndex = 0;
+
+  for (let i = 0; i < text.length && queryIndex < query.length; i++) {
+    if (text[i] === query[queryIndex]) {
+      queryIndex++;
+    }
+  }
+
+  return queryIndex === query.length;
+}
+
+function displaySearchResults(results, query) {
+  searchResults.innerHTML = results
+    .map(
+      (tool, index) => `
+    <button type="button"
+       class="search-result-item w-full text-left" 
+       data-index="${index}"
+       data-href="${tool.href}"
+       style="display: block; padding: 12px 16px; color: var(--color-text); transition: background-color 150ms; outline: none; border: none; background: transparent;">
+      <div style="font-weight: 500;">${highlightMatch(tool.name, query)}</div>
+      <div style="font-size: 0.875rem; color: var(--color-text-secondary);">${tool.category}</div>
+    </button>
+  `,
+    )
+    .join("");
+  searchResults.hidden = false;
+
+  // Add hover, focus, and click effects
+  const resultItems = searchResults.querySelectorAll(".search-result-item");
+  resultItems.forEach((item) => {
+    item.addEventListener("mouseenter", () => {
+      clearSelectedResult();
+      item.style.backgroundColor = "var(--color-bg-secondary)";
+      selectedResultIndex = parseInt(item.dataset.index);
+    });
+    item.addEventListener("mouseleave", () => {
+      item.style.backgroundColor = "transparent";
+    });
+    item.addEventListener("focus", () => {
+      clearSelectedResult();
+      item.style.backgroundColor = "var(--color-bg-secondary)";
+      selectedResultIndex = parseInt(item.dataset.index);
+    });
+    item.addEventListener("click", (e) => {
+      e.preventDefault();
+      const href = item.getAttribute("data-href");
+      if (href) {
+        navigateToTool(href);
+        clearSearchUI();
+      }
+    });
+  });
+}
+
+function clearSelectedResult() {
+  const results = searchResults.querySelectorAll(".search-result-item");
+  results.forEach((item) => {
+    item.style.backgroundColor = "transparent";
+  });
+}
+
+function selectResult(index) {
+  const results = searchResults.querySelectorAll(".search-result-item");
+  if (index >= 0 && index < results.length) {
+    clearSelectedResult();
+    results[index].style.backgroundColor = "var(--color-bg-secondary)";
+    results[index].focus();
+    selectedResultIndex = index;
+  }
+}
+
+// Enhanced Keyboard Shortcuts
+document.addEventListener("keydown", (e) => {
+  // Focus search with /
+  if (
+    e.key === "/" &&
+    !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)
+  ) {
+    e.preventDefault();
+    searchInput?.focus();
+  }
+
+  // Clear search with Escape
+  if (e.key === "Escape") {
+    if (
+      document.activeElement === searchInput ||
+      searchResults.contains(document.activeElement)
+    ) {
+      searchInput.value = "";
+      searchClear.hidden = true;
+      searchResults.hidden = true;
+      searchInput.blur();
+      selectedResultIndex = -1;
+    }
+  }
+
+  // Arrow navigation in search results
+  if (
+    !searchResults.hidden &&
+    (document.activeElement === searchInput ||
+      searchResults.contains(document.activeElement))
+  ) {
+    const results = searchResults.querySelectorAll(".search-result-item");
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      selectedResultIndex = Math.min(
+        selectedResultIndex + 1,
+        results.length - 1,
+      );
+      selectResult(selectedResultIndex);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (selectedResultIndex === -1) {
+        selectedResultIndex = results.length - 1;
+      } else {
+        selectedResultIndex = Math.max(selectedResultIndex - 1, 0);
+      }
+      selectResult(selectedResultIndex);
+    } else if (e.key === "Enter" && selectedResultIndex >= 0) {
+      e.preventDefault();
+      const selectedResult = results[selectedResultIndex];
+      if (selectedResult) {
+        const href = selectedResult.getAttribute("data-href");
+        if (href) {
+          navigateToTool(href);
+          clearSearchUI();
+        }
+      }
+    }
+  }
+
+  // Theme toggle keyboard shortcut
+  if (
+    e.key === "t" &&
+    !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)
+  ) {
+    e.preventDefault();
+    toggleTheme();
+  }
+});
+
+// Sidebar Category Collapse Functionality
+const categoryHeaders = document.querySelectorAll(".sidebar-category-header");
+categoryHeaders.forEach((header) => {
+  header.addEventListener("click", () => {
+    const categoryId = header.getAttribute("data-category");
+    const targetList = document.getElementById(categoryId + "-list");
+    const arrow = header.querySelector("svg");
+    const isExpanded = header.getAttribute("aria-expanded") === "true";
+
+    if (isExpanded) {
+      // Collapse
+      targetList.classList.add("hidden");
+      header.setAttribute("aria-expanded", "false");
+      arrow.style.transform = "rotate(0deg)";
+    } else {
+      // Expand
+      targetList.classList.remove("hidden");
+      header.setAttribute("aria-expanded", "true");
+      arrow.style.transform = "rotate(90deg)";
+    }
+  });
+});
+
+// Active link highlighting
+const navLinks = document.querySelectorAll(".nav-link");
+navLinks.forEach((link) => {
+  link.addEventListener("click", () => {
+    navLinks.forEach((l) => l.classList.remove("active"));
+    link.classList.add("active");
+
+    // Close mobile menu after selection
+    if (window.innerWidth <= 768) {
+      sidebar.classList.remove("open");
+      sidebarOverlay.classList.remove("open");
+      menuToggle.setAttribute("aria-expanded", "false");
+    }
+  });
+});
+
+// Mark styles for search highlighting
+const style = document.createElement("style");
+style.textContent = `
+  mark {
+    background-color: var(--color-warning);
+    color: var(--color-text);
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+`;
+document.head.appendChild(style);
+
+// Initialize router
+const router = new Router();
+
+// Initialize keyboard shortcuts
+const shortcuts = new KeyboardShortcuts();
+window.shortcuts = shortcuts; // Make available globally for settings
+
+// Initialize shareable links
+const shareableLinks = new ShareableLinks();
+
+// Initialize history persistence
+const historyPersistence = new HistoryPersistence();
+window.historyPersistence = historyPersistence; // Make available globally for settings
+
+// Initialize settings manager
+const settingsManager = new SettingsManager();
+window.settingsManager = settingsManager; // Make available globally for theme sync
+
+// Initialize search aliases
+const searchAliases = new SearchAliases();
+
+// System Notification Function
+function showSystemNotification(message, type = "info") {
+  const notification = document.createElement("div");
+  const bgColor =
+    type === "error"
+      ? "bg-red-100 dark:bg-red-900 border-red-300 dark:border-red-700 text-red-800 dark:text-red-200"
+      : type === "success"
+        ? "bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-700 text-green-800 dark:text-green-200"
+        : type === "warning"
+          ? "bg-yellow-100 dark:bg-yellow-900 border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-200"
+          : "bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200";
+
+  notification.className = `fixed top-4 right-4 max-w-sm p-4 rounded-lg border shadow-lg z-50 transition-all duration-300 ${bgColor}`;
+
+  // Create elements safely to prevent XSS
+  const container = document.createElement("div");
+  container.className = "flex items-center";
+
+  const messageSpan = document.createElement("span");
+  messageSpan.className = "flex-1";
+  messageSpan.textContent = message; // Safe text assignment prevents XSS
+
+  const closeButton = document.createElement("button");
+  closeButton.className = "ml-3 text-current opacity-70 hover:opacity-100";
+  closeButton.textContent = "×";
+  closeButton.setAttribute("aria-label", "Close notification");
+  closeButton.addEventListener("click", () => notification.remove());
+
+  container.appendChild(messageSpan);
+  container.appendChild(closeButton);
+  notification.appendChild(container);
+
+  document.body.appendChild(notification);
+
+  // Auto-remove after 4 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.remove();
+    }
+  }, 4000);
+}
+
+// Clear Everything Function
+async function clearEverything() {
+  if (
+    confirm(
+      "This will clear all storage (localStorage, sessionStorage, cache), disconnect from all services, and reload with fresh resources from server. Continue?",
+    )
+  ) {
+    try {
+      // Show clearing message
+      showSystemNotification("Clearing all data and cache...", "info");
+
+      // Clear all localStorage except theme preference if explicitly set
+      const themePreference = localStorage.getItem("theme");
+      localStorage.clear();
+      // Restore theme preference if it was explicitly set (not system)
+      if (themePreference && themePreference !== "system") {
+        localStorage.setItem("theme", themePreference);
+      }
+
+      // Clear sessionStorage
+      sessionStorage.clear();
+
+      // Clear any cookies for this domain
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+
+      // Send message to service worker to clear its caches
+      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: "CLEAR_ALL_CACHES",
+        });
+      }
+
+      // Close any open EventSource connections (for tools like temp-email)
+      if (window.tempEmailTool && window.tempEmailTool.disconnect) {
+        window.tempEmailTool.disconnect();
+      }
+
+      // Close any open WebSocket connections
+      if (window.WebSocket) {
+        // Clear any global WebSocket references if they exist
+        Object.keys(window).forEach((key) => {
+          if (window[key] instanceof WebSocket) {
+            window[key].close();
+          }
+        });
+      }
+
+      // Wait for all async clearing operations to complete
+      const clearingPromises = [];
+
+      // Clear IndexedDB databases
+      if ("indexedDB" in window) {
+        try {
+          const databases = await indexedDB.databases();
+          for (const db of databases) {
+            clearingPromises.push(
+              new Promise((resolve) => {
+                const deleteReq = indexedDB.deleteDatabase(db.name);
+                deleteReq.onsuccess = () => resolve();
+                deleteReq.onerror = () => resolve(); // Continue even if one fails
+                deleteReq.onblocked = () => resolve(); // Continue even if blocked
+              }),
+            );
+          }
+        } catch (e) {
+          console.warn("Could not enumerate IndexedDB databases");
+        }
+      }
+
+      // Clear all caches using Cache API
+      if ("caches" in window) {
+        try {
+          const cacheNames = await caches.keys();
+          for (const cacheName of cacheNames) {
+            clearingPromises.push(caches.delete(cacheName));
+          }
+        } catch (e) {
+          console.warn("Error clearing caches");
+        }
+      }
+
+      // Unregister ALL service workers
+      if ("serviceWorker" in navigator) {
+        try {
+          const registrations =
+            await navigator.serviceWorker.getRegistrations();
+          for (const registration of registrations) {
+            clearingPromises.push(registration.unregister());
+          }
+
+          // Also clear the service worker update cache
+          if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+              type: "SKIP_WAITING",
+            });
+          }
+        } catch (e) {
+          console.warn("Error unregistering service workers:", e);
+        }
+      }
+
+      // Clear browser HTTP cache using fetch with cache: 'reload'
+      try {
+        // Force reload critical resources with no-cache
+        await fetch("/", { cache: "reload" });
+        await fetch("/index.html", { cache: "reload" });
+        await fetch("/css/styles.css", { cache: "reload" });
+        await fetch("/js/app.js", { cache: "reload" });
+      } catch (e) {
+        console.warn("Could not force reload resources:", e);
+      }
+
+      // Wait for all clearing operations to complete (with timeout)
+      await Promise.allSettled([
+        ...clearingPromises,
+        new Promise((resolve) => setTimeout(resolve, 1000)), // 1 second max wait
+      ]);
+
+      console.log("All storage cleared, forcing hard reload...");
+
+      // Force the most aggressive cache bypass possible
+      const timestamp = Date.now();
+      const randomParam = Math.random().toString(36).substring(7);
+
+      // Clear any hash and search params, add cache busting
+      const baseUrl = window.location.origin + window.location.pathname;
+      const newUrl = `${baseUrl}?_cb=${timestamp}&_r=${randomParam}&_nc=1&_t=${Date.now()}`;
+
+      // Force browser to treat this as a completely new page
+      // Create a form submission to force a POST-like reload
+      const form = document.createElement("form");
+      form.method = "GET";
+      form.action = newUrl;
+      document.body.appendChild(form);
+
+      // Method 1: Submit form to force navigation
+      form.submit();
+
+      // Method 2: Fallback using href assignment
+      setTimeout(() => {
+        window.location.href = newUrl;
+      }, 100);
+
+      // Method 3: Fallback using reload with force (deprecated but still works in some browsers)
+      setTimeout(() => {
+        try {
+          window.location.reload(true);
+        } catch (e) {
+          // Method 4: Final fallback using modern reload
+          window.location.reload();
+        }
+      }, 200);
+
+      // Method 5: Ultimate fallback - manual navigation
+      setTimeout(() => {
+        window.history.go(0);
+      }, 300);
+    } catch (error) {
+      console.error("Error during clear everything:", error);
+      showSystemNotification(
+        "Error clearing data, forcing reload...",
+        "warning",
+      );
+
+      // Force reload even if clearing failed
+      setTimeout(() => {
+        const timestamp = Date.now();
+        window.location.href = `${window.location.origin}${window.location.pathname}?_force=${timestamp}`;
+      }, 500);
+    }
+  }
+}
+
+// DevToolbox Navigation (go to home)
+function navigateHome() {
+  // Close mobile sidebar if open
+  if (sidebar?.classList.contains("open")) {
+    sidebar.classList.remove("open");
+    if (sidebarOverlay) sidebarOverlay.classList.remove("open");
+    if (menuToggle) menuToggle.setAttribute("aria-expanded", "false");
+  }
+
+  // Navigate to home
+  window.location.href = "/";
+}
+
+// Prefetch popular tools on idle
+function prefetchPopularTools() {
+  if ("serviceWorker" in navigator) {
+    const doPrefetch = () => {
+      const popularTools = [
+        "/js/tools/json-formatter.js",
+        "/js/tools/jwt-decoder.js",
+        "/js/tools/base64.js",
+        "/js/tools/url-encode.js",
+        "/js/tools/uuid-generator.js",
+        "/js/tools/hash-generator.js",
+        "/js/tools/password-generator.js",
+        "/js/tools/diff-tool.js",
+      ];
+
+      // Trigger prefetch by making idle requests
+      popularTools.forEach((tool) => {
+        fetch(tool, { priority: "low" }).catch(() => {}); // Ignore errors, just for prefetching
+      });
+    };
+
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(doPrefetch, { timeout: 2000 });
+    } else {
+      // Fallback to setTimeout for browsers without requestIdleCallback
+      setTimeout(doPrefetch, 1000);
+    }
+  }
+}
+
+// Initialize prefetching after page load
+if (document.readyState === "complete") {
+  prefetchPopularTools();
+} else {
+  window.addEventListener("load", prefetchPopularTools);
+}
+
+// Make functions available globally
+window.showSystemNotification = showSystemNotification;
+window.clearEverything = clearEverything;
+window.navigateHome = navigateHome;

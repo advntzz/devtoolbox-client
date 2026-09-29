@@ -1,0 +1,44 @@
+{
+  "server": {
+    "port": 54322,
+    "cors": {
+      "origins": [
+        "http://localhost:8081",
+        "http://127.0.0.1:8081", 
+        "http://localhost:52474",
+        "http://127.0.0.1:52474"
+      ]
+    }
+  },
+  "broadcasting": {
+    "maxRecipientsPerInbox": 20,
+    "writeSchedulingBatchSize": 100,
+    "enableWriteScheduling": true,
+    "enableBackpressure": true,
+    "dropFailedClients": true
+  },
+  "timeouts": {
+    "pingIntervalMs": 30000,
+    "heartbeatTimeoutMs": 60000,
+    "globalCleanupIntervalMs": 120000,
+    "connectionTimeoutMs": 120000
+  },
+  "ttl": {
+    "inboxTtlHours": 2,
+    "subscriberTtlHours": 2,
+    "cleanupIntervalMinutes": 5,
+    "enableAutoExpiry": true
+  },
+  "sse": {
+    "retryMs": 3000,
+    "enableEventIds": true,
+    "ringBufferSize": 50,
+    "emailSummaryFields": ["id", "from", "subject", "timestamp", "otpCodes"],
+    "maxInboxesPerConnection": 10,
+    "enableMultiInboxSubscription": true
+  },
+  "inbox": {
+    "maxAgeHours": 2,
+    "cleanupIntervalMinutes": 5
+  }
+}

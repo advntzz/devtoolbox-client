@@ -1,0 +1,165 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-format:
+    name: Lint and Format Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Basic file check
+      run: |
+        echo "Checking for basic file structure..."
+        ls -la js/
+        ls -la css/
+        echo "Basic checks passed"
+
+  complexity-analysis:
+    name: Code Complexity Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Install complexity analyzer
+      run: npm install --no-save eslint-plugin-complexity
+      
+    - name: Analyze complexity with ESLint
+      run: |
+        echo '{
+          "env": {
+            "es2022": true,
+            "browser": true
+          },
+          "parserOptions": {
+            "ecmaVersion": 2022,
+            "sourceType": "module"
+          },
+          "plugins": ["complexity"],
+          "rules": {
+            "complexity": ["warn", 10]
+          }
+        }' > .eslintrc.json
+        npx eslint js/ --ext .js --format json --output-file complexity-report.json || true
+      
+    - name: Upload complexity report
+      uses: actions/upload-artifact@v6
+      with:
+        name: complexity-report
+        path: complexity-report.json
+
+  bundle-size-check:
+    name: Bundle Size Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build CSS
+      run: npm run build-css
+      
+    - name: Check CSS bundle size
+      run: |
+        echo "CSS Bundle Size Check:"
+        ls -lh css/styles.css
+        SIZE=$(stat -c%s css/styles.css)
+        echo "CSS Bundle size: $SIZE bytes"
+        if [ $SIZE -gt 100000 ]; then
+          echo "Warning: CSS bundle size exceeds 100KB"
+          exit 1
+        fi
+        
+    - name: Check bundle sizes with ls
+      run: |
+        echo "Bundle Size Analysis:"
+        echo "CSS file:"
+        ls -lh css/styles.css
+        CSS_SIZE=$(stat -c%s css/styles.css)
+        echo "CSS size: $CSS_SIZE bytes"
+        
+        echo "Main JS file:"
+        ls -lh js/app.js
+        JS_SIZE=$(stat -c%s js/app.js)
+        echo "JS size: $JS_SIZE bytes"
+        
+        # Check if sizes are within limits
+        if [ $CSS_SIZE -gt 102400 ]; then # 100KB
+          echo "Warning: CSS bundle exceeds 100KB"
+        fi
+        
+        if [ $JS_SIZE -gt 51200 ]; then # 50KB
+          echo "Warning: JS bundle exceeds 50KB"  
+        fi
+        
+        echo "Bundle size check completed"
+
+  accessibility-test:
+    name: Accessibility Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build project
+      run: npm run build
+      
+    - name: Install accessibility tools
+      run: npm install --no-save @axe-core/cli
+      
+    - name: Start server for testing
+      run: |
+        npx http-server . -p 8080 &
+        sleep 5
+        
+    - name: Run accessibility tests
+      run: |
+        echo "Running basic accessibility check..."
+        npx axe http://localhost:8080 --exit || echo "Accessibility issues detected but continuing for now"
+        echo "Accessibility test completed"

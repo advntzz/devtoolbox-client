@@ -1,0 +1,56 @@
+{
+  "name": "devtools",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:run": "vitest run",
+    "dev": "node dev.js",
+    "serve": "vite preview --port 52474",
+    "build-css": "node build-css.js",
+    "build": "npm run build-css && vite build"
+  },
+  "keywords": [
+    "developer-tools",
+    "utilities",
+    "web-app",
+    "pwa",
+    "offline",
+    "privacy-first"
+  ],
+  "author": "Vijay Iyengar <Mail@VijayIyengar.com>",
+  "license": "MIT",
+  "description": "A fast, minimal, privacy-first collection of 25+ developer utilities. Available at https://encode.click",
+  "homepage": "https://encode.click",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vijay-Duke/devtoolbox.git"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "autoprefixer": "^10.4.21",
+    "http-server": "^14.1.1",
+    "jsdom": "^26.1.0",
+    "playwright": "^1.63.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.18",
+    "vite": "^7.3.6",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "aws4-tiny": "^1.0.0",
+    "clean-css": "^5.3.3",
+    "css-tree": "^3.2.1",
+    "csso": "^5.0.5",
+    "dompurify": "^3.4.14",
+    "figlet": "^1.11.4",
+    "hash-wasm": "^4.12.0",
+    "js-yaml": "^5.4.1",
+    "markdown-it": "^15.0.1",
+    "qrcode": "^1.5.4",
+    "spark-md5": "^3.0.2",
+    "sql-formatter": "^15.8.2",
+    "terser": "^5.35.0"
+  }
+}

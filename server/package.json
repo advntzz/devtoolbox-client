@@ -1,0 +1,21 @@
+{
+  "name": "temp-email-server",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --watch index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.1",
+    "hono": "^4.12.1",
+    "uuid": "^10.0.0",
+    "dompurify": "^3.3.1",
+    "jsdom": "^26.1.0",
+    "dotenv": "^16.4.5"
+  },
+  "description": "Temporary email server with SSE support for DevToolbox",
+  "author": "DevToolbox",
+  "license": "ISC"
+}

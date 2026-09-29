@@ -1,0 +1,48 @@
+# Cloudflare Pages headers configuration
+
+# Global headers - NO CACHE to force fresh content
+/*
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# Main HTML - always fresh
+/
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.encode.click wss://api.encode.click https://ipapi.co https://api.ipify.org https://date.nager.at; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';
+
+# HTML pages - no cache
+/*.html
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+# JavaScript - short cache with revalidation
+/js/*
+  Cache-Control: public, max-age=3600, must-revalidate
+
+# CSS - short cache with revalidation  
+/css/*
+  Cache-Control: public, max-age=3600, must-revalidate
+
+# Icons - longer cache
+/icons/*
+  Cache-Control: public, max-age=86400, immutable
+
+# Service Worker - no cache
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+# Manifest - no cache
+/manifest.json
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
