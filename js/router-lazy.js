@@ -1,4 +1,5 @@
 // Lazy-loading router with code splitting
+const toolModules = import.meta.glob("./tools/*.js");
 export class Router {
   constructor() {
     this.routes = new Map();
@@ -397,7 +398,13 @@ export class Router {
     try {
       // Dynamically import the tool module if not loaded
       if (!route.loaded) {
-        const module = await import(/* @vite-ignore */ route.module);
+        const loader = toolModules[route.module];
+
+        if (!loader) {
+          throw new Error(`Tool module not found: ${route.module}`);
+        }
+
+        const module = await loader();
 
         // Validate that the expected class exists in the module
         if (!module[route.className]) {
@@ -448,7 +455,13 @@ export class Router {
     const route = this.routes.get(path);
     if (route && !route.loaded) {
       try {
-        const module = await import(/* @vite-ignore */ route.module);
+        const loader = toolModules[route.module];
+
+        if (!loader) {
+          throw new Error(`Tool module not found: ${route.module}`);
+        }
+
+        const module = await loader();
         route.ToolClass = module[route.className];
         route.loaded = true;
       } catch (error) {
@@ -599,14 +612,18 @@ export class Router {
     if (toolsToPrefetch.length > 0) {
       const prefetchTools = () => {
         toolsToPrefetch.forEach((route) => {
-          import(/* @vite-ignore */ route.module)
-            .then((module) => {
-              if (module[route.className]) {
-                route.ToolClass = module[route.className];
-                route.loaded = true;
-              }
-            })
-            .catch(() => {}); // Silent fail for prefetch
+          const loader = toolModules[route.module];
+
+          if (loader) {
+            loader()
+              .then((module) => {
+                if (module[route.className]) {
+                  route.ToolClass = module[route.className];
+                  route.loaded = true;
+                }
+              })
+              .catch(() => {}); // Silent fail for prefetch
+          }
         });
       };
 
