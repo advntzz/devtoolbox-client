@@ -2,7 +2,7 @@
 
 A fast, minimal, privacy-first collection of developer utilities in one place. No ads, no tracking, works offline.
 
-## 🌐 **[Try DevToolbox Live →](https://encode.click)**
+## 🌐 https://devtoolbox-client.dominggoadvend.workers.dev/**
 
 **25+ developer tools** available instantly at **[encode.click](https://encode.click)** - No installation required!
 
